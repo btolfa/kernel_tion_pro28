@@ -1413,7 +1413,7 @@ static int i2c_detect(struct i2c_adapter *adapter, struct i2c_driver *driver)
 	struct i2c_client *temp_client;
 	int i, err = 0;
 	int adap_id = i2c_adapter_id(adapter);
-
+		
 	address_list = driver->address_list;
 	if (!driver->detect || !address_list)
 		return 0;

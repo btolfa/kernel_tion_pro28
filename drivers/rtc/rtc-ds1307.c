@@ -638,6 +638,7 @@ static int __devinit ds1307_probe(struct i2c_client *client,
 		[ds_3231] = DS3231_BIT_BBSQW,
 	};
 
+	dev_dbg(&client->dev, "DS1307 probe\r\n");	
 	if (!i2c_check_functionality(adapter, I2C_FUNC_SMBUS_BYTE_DATA)
 	    && !i2c_check_functionality(adapter, I2C_FUNC_SMBUS_I2C_BLOCK))
 		return -EIO;
@@ -935,6 +936,7 @@ static struct i2c_driver ds1307_driver = {
 
 static int __init ds1307_init(void)
 {
+	//printk(KERN_WARNING "DS1307 init\r\n");	
 	return i2c_add_driver(&ds1307_driver);
 }
 module_init(ds1307_init);

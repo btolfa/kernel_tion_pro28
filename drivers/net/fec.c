@@ -1424,8 +1424,8 @@ fec_stop(struct net_device *dev)
 	}
 
 	/* Whack a reset.  We should wait for this. */
-	writel(1, fep->hwp + FEC_ECNTRL);
-	udelay(10);
+	//writel(1, fep->hwp + FEC_ECNTRL);
+	//udelay(10);
 
 #ifdef CONFIG_ARCH_MXS
 	/* FIXME: we have to enable enet to keep mii interrupt works. */

@@ -41,13 +41,15 @@
 #include "device.h"
 #include "mx28evk.h"
 
-static struct i2c_board_info __initdata mxs_i2c_device[] = {
-	{ I2C_BOARD_INFO("sgtl5000-i2c", 0xa), .flags = I2C_M_TEN }
+static struct i2c_board_info __initdata mxs_i2c_device[] = {	
+	{ I2C_BOARD_INFO("sgtl5000-i2c", 0xa), .flags = I2C_M_TEN },
+	{ I2C_BOARD_INFO("m41t00", 0x68), }
+	
 };
 
 static void __init i2c_device_init(void)
 {
-	i2c_register_board_info(0, mxs_i2c_device, ARRAY_SIZE(mxs_i2c_device));
+	i2c_register_board_info(0, mxs_i2c_device, ARRAY_SIZE(mxs_i2c_device));	
 }
 #if defined(CONFIG_MTD_M25P80) || defined(CONFIG_MTD_M25P80_MODULE)
 static struct flash_platform_data mx28_spi_flash_data = {

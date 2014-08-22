@@ -29,7 +29,7 @@
 #include <mach/arc_otg.h>
 #include "usb.h"
 #include "mx28_pins.h"
-#define USB_POWER_ENABLE MXS_PIN_TO_GPIO(PINID_AUART2_TX)
+#define USB_POWER_ENABLE MXS_PIN_TO_GPIO(PINID_AUART3_CTS)
 
 #ifdef CONFIG_WORKAROUND_ARCUSB_REG_RW
 static void fsl_safe_writel(u32 val32, volatile u32 *addr)

@@ -44,6 +44,9 @@
 
 #define NUM_SCREENS	1
 
+#undef pr_debug
+#define pr_debug pr_warning
+
 enum {
 	F_DISABLE = 0,
 	F_ENABLE,
@@ -346,7 +349,7 @@ static int mxsfb_setcolreg(u_int regno, u_int red, u_int green, u_int blue,
 		    (green << info->var.green.offset) |
 		    (blue << info->var.blue.offset) |
 		    (transp << info->var.transp.offset);
-	}
+	}		
 	return 0;
 }
 

@@ -422,21 +422,23 @@ static void mx28_init_gpmi_nfc(void)
 
 #if defined(CONFIG_MMC_MXS) || defined(CONFIG_MMC_MXS_MODULE)
 #if defined(CONFIG_MACH_MX28EVK)
-#define MMC0_POWER	MXS_PIN_TO_GPIO(PINID_PWM3)
-#define MMC1_POWER	MXS_PIN_TO_GPIO(PINID_PWM4)
-#define MMC0_WP		MXS_PIN_TO_GPIO(PINID_SSP1_SCK)
-#define MMC1_WP		MXS_PIN_TO_GPIO(PINID_GPMI_RESETN)
+//#define MMC0_POWER	MXS_PIN_TO_GPIO(PINID_PWM3)
+//#define MMC1_POWER	MXS_PIN_TO_GPIO(PINID_PWM4)
+//#define MMC0_WP		MXS_PIN_TO_GPIO(PINID_SSP1_SCK)
+//#define MMC1_WP		MXS_PIN_TO_GPIO(PINID_GPMI_RESETN)
 #endif
 
 static int mxs_mmc_get_wp_ssp0(void)
 {
-	return gpio_get_value(MMC0_WP);
+	//return gpio_get_value(MMC0_WP);
+	return 0; // TionPro28 has no WP pin
 }
 
 static int mxs_mmc_hw_init_ssp0(void)
 {
 	int ret = 0;
 
+#if 0 // no WP pin and POWER pin in TionPro28	
 	/* Configure write protect GPIO pin */
 	ret = gpio_request(MMC0_WP, "mmc0_wp");
 	if (ret)
@@ -453,18 +455,22 @@ static int mxs_mmc_hw_init_ssp0(void)
 	gpio_direction_output(MMC0_POWER, 0);
 	mdelay(100);
 
+
 	return 0;
 
 out_power:
 	gpio_free(MMC0_WP);
 out_wp:
+#endif
 	return ret;
 }
 
 static void mxs_mmc_hw_release_ssp0(void)
 {
+#if 0 // no WP pin and POWER pin in TionPro28
 	gpio_free(MMC0_POWER);
 	gpio_free(MMC0_WP);
+#endif
 
 }
 
@@ -492,7 +498,7 @@ static unsigned long mxs_mmc_setclock_ssp0(unsigned long hz)
 
 static int mxs_mmc_get_wp_ssp1(void)
 {
-	return gpio_get_value(MMC1_WP);
+	return 0;//gpio_get_value(MMC1_WP);
 }
 
 static int mxs_mmc_hw_init_ssp1(void)
@@ -500,7 +506,7 @@ static int mxs_mmc_hw_init_ssp1(void)
 	int ret = 0;
 
 	/* Configure write protect GPIO pin */
-	ret = gpio_request(MMC1_WP, "mmc1_wp");
+/*	ret = gpio_request(MMC1_WP, "mmc1_wp");
 	if (ret)
 		goto out_wp;
 
@@ -508,25 +514,25 @@ static int mxs_mmc_hw_init_ssp1(void)
 	gpio_direction_input(MMC1_WP);
 
 	/* Configure POWER pin as gpio to drive power to MMC slot */
-	ret = gpio_request(MMC1_POWER, "mmc1_power");
+/*	ret = gpio_request(MMC1_POWER, "mmc1_power");
 	if (ret)
 		goto out_power;
 
 	gpio_direction_output(MMC1_POWER, 0);
-	mdelay(100);
+	mdelay(100);*/
 
 	return 0;
 
 out_power:
-	gpio_free(MMC1_WP);
+	//gpio_free(MMC1_WP);
 out_wp:
 	return ret;
 }
 
 static void mxs_mmc_hw_release_ssp1(void)
 {
-	gpio_free(MMC1_POWER);
-	gpio_free(MMC1_WP);
+	//gpio_free(MMC1_POWER);
+	//gpio_free(MMC1_WP);
 }
 
 static void mxs_mmc_cmd_pullup_ssp1(int enable)
@@ -645,7 +651,7 @@ static void __init mx28_init_mmc(void)
 		mxs_add_device(pdev, 2);
 	}
 
-	if (mxs_get_type(PINID_GPMI_RDY1) == PIN_FUN2) {
+/*	if (mxs_get_type(PINID_GPMI_RDY1) == PIN_FUN2) {
 		pdev = mxs_get_device("mxs-mmc", 1);
 		if (pdev == NULL || IS_ERR(pdev))
 			return;
@@ -653,7 +659,7 @@ static void __init mx28_init_mmc(void)
 		pdev->num_resources = ARRAY_SIZE(mmc1_resource);
 		pdev->dev.platform_data = &mmc1_data;
 		mxs_add_device(pdev, 2);
-	}
+	}*/
 }
 #else
 static void mx28_init_mmc(void)

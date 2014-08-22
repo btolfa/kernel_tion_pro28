@@ -169,12 +169,15 @@ static inline void setup_dotclk_panel(u16 v_pulse_width,
 	__raw_writel(BM_LCDIF_CTRL_DATA_SHIFT_DIR,
 		     REGS_LCDIF_BASE + HW_LCDIF_CTRL_CLR);
 
+	__raw_writel(BM_LCDIF_CTRL_DATA_SHIFT_DIR,
+		     REGS_LCDIF_BASE + HW_LCDIF_CTRL_SET);
+
 	__raw_writel(BM_LCDIF_CTRL_SHIFT_NUM_BITS,
 		     REGS_LCDIF_BASE + HW_LCDIF_CTRL_CLR);
 
 	__raw_writel(BM_LCDIF_CTRL1_BYTE_PACKING_FORMAT,
 		     REGS_LCDIF_BASE + HW_LCDIF_CTRL1_CLR);
-	__raw_writel(BF_LCDIF_CTRL1_BYTE_PACKING_FORMAT(7) |
+	__raw_writel(BF_LCDIF_CTRL1_BYTE_PACKING_FORMAT(0x0F) | /* was 7*/
 		     BM_LCDIF_CTRL1_RECOVER_ON_UNDERFLOW,
 		     REGS_LCDIF_BASE + HW_LCDIF_CTRL1_SET);
 
@@ -198,12 +201,16 @@ static inline void setup_dotclk_panel(u16 v_pulse_width,
 
 	__raw_writel(BM_LCDIF_CTRL_WORD_LENGTH |
 		     BM_LCDIF_CTRL_INPUT_DATA_SWIZZLE |
+		     BM_LCDIF_CTRL_DATA_FORMAT_16_BIT |
+		     BM_LCDIF_CTRL_DATA_FORMAT_18_BIT |
+	       	     BM_LCDIF_CTRL_DATA_FORMAT_24_BIT |		
 		     BM_LCDIF_CTRL_LCD_DATABUS_WIDTH,
 		     REGS_LCDIF_BASE + HW_LCDIF_CTRL_CLR);
-	__raw_writel(BF_LCDIF_CTRL_WORD_LENGTH(3) |	/* 24 bit */
+	__raw_writel(BF_LCDIF_CTRL_WORD_LENGTH(0/*0*/) |	/* 16 bit */
 		     BM_LCDIF_CTRL_DATA_SELECT |	/* data mode */
 		     BF_LCDIF_CTRL_INPUT_DATA_SWIZZLE(0) |	/* no swap */
-		     BF_LCDIF_CTRL_LCD_DATABUS_WIDTH(3),	/* 24 bit */
+		     BF_LCDIF_CTRL_CSC_DATA_SWIZZLE(0) |	/* no swap */	
+		     BF_LCDIF_CTRL_LCD_DATABUS_WIDTH(2),	/* 18 bit */
 		     REGS_LCDIF_BASE + HW_LCDIF_CTRL_SET);
 
 	val = __raw_readl(REGS_LCDIF_BASE + HW_LCDIF_VDCTRL0);

@@ -755,6 +755,11 @@ void phy_start(struct phy_device *phydev)
 EXPORT_SYMBOL(phy_stop);
 EXPORT_SYMBOL(phy_start);
 
+int old_error_count = 0;
+int new_err_count = 0;
+int step_to_restart = 2;
+
+
 /**
  * phy_state_machine - Handle the state machine
  * @work: work_struct that describes the work to be done
@@ -877,6 +882,28 @@ void phy_state_machine(struct work_struct *work)
 		case PHY_CHANGELINK:
 			err = phy_read_status(phydev);
 
+			new_err_count = phy_read(phydev,26);
+			
+			if (new_err_count != old_error_count)
+				step_to_restart--;
+			else
+				step_to_restart = 2;
+
+			old_error_count = new_err_count;
+
+			if (!step_to_restart)
+			{
+				printk("Resetting PHY\n");
+				phy_write(phydev, MII_BMCR, BMCR_RESET);
+				udelay(10);
+				phydev->state = PHY_UP;
+				step_to_restart = 2;
+				
+				break;	
+			}		
+			
+			
+			
 			if (err)
 				break;
 
