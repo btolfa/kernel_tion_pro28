@@ -80,7 +80,9 @@ static void usbh1_clock_gate(bool on)
 	if (on) {
 		clk_enable(usb_clk);
 		clk_enable(usb_phy_clk);
+		usbh1_internal_phy_clock_gate(on);
 	} else {
+		usbh1_internal_phy_clock_gate(on);
 		clk_disable(usb_phy_clk);
 		clk_disable(usb_clk);
 	}

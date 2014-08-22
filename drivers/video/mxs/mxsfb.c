@@ -469,20 +469,20 @@ static int mxsfb_check_var(struct fb_var_screeninfo *var, struct fb_info *info)
 	if (var->bits_per_pixel == 16) {
 		/* RGBA 5551 */
 		if (var->transp.length) {
-			var->red.offset = 0;
+			var->red.offset = 10;
 			var->red.length = 5;
 			var->green.offset = 5;
 			var->green.length = 5;
-			var->blue.offset = 10;
+			var->blue.offset = 0;
 			var->blue.length = 5;
 			var->transp.offset = 15;
 			var->transp.length = 1;
 		} else {	/* RGB 565 */
-			var->red.offset = 0;
+			var->red.offset = 11;
 			var->red.length = 5;
 			var->green.offset = 5;
 			var->green.length = 6;
-			var->blue.offset = 11;
+			var->blue.offset = 0;
 			var->blue.length = 5;
 			var->transp.offset = 0;
 			var->transp.length = 0;
@@ -494,6 +494,7 @@ static int mxsfb_check_var(struct fb_var_screeninfo *var, struct fb_info *info)
 		var->green.length = 8;
 		var->blue.offset = 0;
 		var->blue.length = 8;
+		
 	}
 
 	var->red.msb_right = 0;

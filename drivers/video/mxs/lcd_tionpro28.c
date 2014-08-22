@@ -1,21 +1,7 @@
 /*
- * Freescale MX28 Seiko 43WVF1G LCD panel driver
+ *   LCD panel driver
  *
- * Copyright (C) 2009-2010 Freescale Semiconductor, Inc. All Rights Reserved.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License along
- * with this program; if not, write to the Free Software Foundation, Inc.,
- * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ 
  */
 
 #include <linux/init.h>
@@ -30,6 +16,9 @@
 #include <mach/regs-pwm.h>
 #include <mach/system.h>
 
+
+/*//#if FALSE
+// 640x480 TFT
 #define DOTCLK_H_ACTIVE  640
 #define DOTCLK_H_PULSE_WIDTH 10
 #define DOTCLK_HF_PORCH  12
@@ -43,6 +32,23 @@
 #define DOTCLK_VB_PORCH  21
 #define DOTCLK_V_WAIT_CNT (DOTCLK_V_PULSE_WIDTH + DOTCLK_VB_PORCH)
 #define DOTCLK_V_PERIOD (DOTCLK_VF_PORCH + DOTCLK_V_ACTIVE + DOTCLK_V_WAIT_CNT)
+//#endif*/
+//#if TRUE
+// 640x480 VGA
+#define DOTCLK_H_ACTIVE  640
+#define DOTCLK_H_PULSE_WIDTH 96
+#define DOTCLK_HF_PORCH  16
+#define DOTCLK_HB_PORCH  48
+#define DOTCLK_H_WAIT_CNT  (DOTCLK_H_PULSE_WIDTH + DOTCLK_HB_PORCH)
+#define DOTCLK_H_PERIOD (DOTCLK_H_WAIT_CNT + DOTCLK_HF_PORCH + DOTCLK_H_ACTIVE)
+
+#define DOTCLK_V_ACTIVE  480
+#define DOTCLK_V_PULSE_WIDTH  2
+#define DOTCLK_VF_PORCH  13
+#define DOTCLK_VB_PORCH  31
+#define DOTCLK_V_WAIT_CNT (DOTCLK_V_PULSE_WIDTH + DOTCLK_VB_PORCH)
+#define DOTCLK_V_PERIOD (DOTCLK_VF_PORCH + DOTCLK_V_ACTIVE + DOTCLK_V_WAIT_CNT)
+//#endif
 
 static struct mxs_platform_bl_data bl_data;
 static struct clk *lcd_clk;
@@ -92,6 +98,14 @@ static int init_panel(struct device *dev, dma_addr_t phys, int memsize,
 			   DOTCLK_V_WAIT_CNT, DOTCLK_V_ACTIVE,
 			   DOTCLK_H_PULSE_WIDTH, DOTCLK_H_PERIOD,
 			   DOTCLK_H_WAIT_CNT, DOTCLK_H_ACTIVE, 0);
+
+	/* VSYNC & HSYNC polarity */
+	/*__raw_writel(BM_LCDIF_VDCTRL0_VSYNC_POL,
+		     REGS_LCDIF_BASE + HW_LCDIF_VDCTRL0_SET);	
+	__raw_writel(BM_LCDIF_VDCTRL0_HSYNC_POL,
+		     REGS_LCDIF_BASE + HW_LCDIF_VDCTRL0_SET);*/
+
+
 
 	ret = mxs_lcdif_dma_init(dev, phys, memsize);
 	if (ret)
