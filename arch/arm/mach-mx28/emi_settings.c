@@ -40,7 +40,7 @@ unsigned int *get_current_emidata()
 	return DRAM_REG;
 }
 
-void test_emi_change()
+void test_emi_change(void)
 {
 	struct mxs_emi_scaling_data emi;
 	void (*f) (struct mxs_emi_scaling_data *, unsigned int *);

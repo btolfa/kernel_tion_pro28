@@ -88,7 +88,7 @@ static void mx28_set_hbus_autoslow_flags(u16 mask)
 	__raw_writel(reg, CLKCTRL_BASE_ADDR + HW_CLKCTRL_HBUS);
 }
 
-static int mx28_raw_enable(struct clk *clk)
+static int mx28_raw_set_ena(struct clk *clk)
 {
 	unsigned int reg;
 	if (clk->enable_reg) {
@@ -99,15 +99,29 @@ static int mx28_raw_enable(struct clk *clk)
 	return 0;
 }
 
-static void mx28_raw_disable(struct clk *clk)
+static void mx28_raw_set_dis(struct clk *clk)
+{
+	mx28_raw_set_ena(clk);
+}
+
+static void mx28_raw_unset_dis(struct clk *clk)
 {
 	unsigned int reg;
+
 	if (clk->enable_reg) {
 		reg = __raw_readl(clk->enable_reg);
 		reg |= clk->enable_bits;
 		__raw_writel(reg, clk->enable_reg);
 	}
 }
+
+static int mx28_raw_unset_ena(struct clk *clk)
+{
+	mx28_raw_unset_dis(clk);
+
+	return 0;
+}
+
 
 static unsigned int
 mx28_get_frac_div(unsigned long root_rate, unsigned long rate, unsigned mask)
@@ -746,15 +760,15 @@ static struct clk rtc_clk = {
 static struct clk flexcan_clk[] = {
 	{
 	 .parent = &ref_xtal_clk,
-	 .enable = mx28_raw_enable,
-	 .disable = mx28_raw_disable,
+	 .enable = mx28_raw_set_ena,
+	 .disable = mx28_raw_unset_dis,
 	 .enable_reg = CLKCTRL_BASE_ADDR + HW_CLKCTRL_FLEXCAN,
 	 .enable_bits = BM_CLKCTRL_FLEXCAN_STOP_CAN0,
 	 },
 	{
 	 .parent = &ref_xtal_clk,
-	 .enable = mx28_raw_enable,
-	 .disable = mx28_raw_disable,
+	 .enable = mx28_raw_set_ena,
+	 .disable = mx28_raw_unset_dis,
 	 .enable_reg = CLKCTRL_BASE_ADDR + HW_CLKCTRL_FLEXCAN,
 	 .enable_bits = BM_CLKCTRL_FLEXCAN_STOP_CAN1,
 	 },
@@ -1004,8 +1018,8 @@ static struct clk emi_clk = {
 	.set_rate = emi_set_rate,
 	.round_rate = emi_round_rate,
 	.set_parent = emi_set_parent,
-	.enable = mx28_raw_enable,
-	.disable = mx28_raw_disable,
+	.enable = mx28_raw_set_ena,
+	.disable = mx28_raw_unset_dis,
 	.enable_reg = CLKCTRL_BASE_ADDR + HW_CLKCTRL_EMI,
 	.enable_bits = BM_CLKCTRL_EMI_CLKGATE,
 	.scale_reg	= CLKCTRL_BASE_ADDR + HW_CLKCTRL_FRAC0,
@@ -1080,8 +1094,8 @@ static struct clk ssp_clk[] = {
 	{
 	 .parent = &ref_io_clk[0],
 	 .get_rate = ssp_get_rate,
-	 .enable = mx28_raw_enable,
-	 .disable = mx28_raw_disable,
+	 .enable = mx28_raw_set_ena,
+	 .disable = mx28_raw_unset_dis,
 	 .enable_reg = CLKCTRL_BASE_ADDR + HW_CLKCTRL_SSP0,
 	 .enable_bits = BM_CLKCTRL_SSP0_CLKGATE,
 	 .busy_reg = CLKCTRL_BASE_ADDR + HW_CLKCTRL_SSP0,
@@ -1096,8 +1110,8 @@ static struct clk ssp_clk[] = {
 	{
 	 .parent = &ref_io_clk[0],
 	 .get_rate = ssp_get_rate,
-	 .enable = mx28_raw_enable,
-	 .disable = mx28_raw_disable,
+	 .enable = mx28_raw_set_ena,
+	 .disable = mx28_raw_unset_dis,
 	 .enable_reg = CLKCTRL_BASE_ADDR + HW_CLKCTRL_SSP1,
 	 .enable_bits = BM_CLKCTRL_SSP1_CLKGATE,
 	 .busy_reg = CLKCTRL_BASE_ADDR + HW_CLKCTRL_SSP1,
@@ -1112,8 +1126,8 @@ static struct clk ssp_clk[] = {
 	{
 	 .parent = &ref_io_clk[1],
 	 .get_rate = ssp_get_rate,
-	 .enable = mx28_raw_enable,
-	 .disable = mx28_raw_disable,
+	 .enable = mx28_raw_set_ena,
+	 .disable = mx28_raw_unset_dis,
 	 .enable_reg = CLKCTRL_BASE_ADDR + HW_CLKCTRL_SSP2,
 	 .enable_bits = BM_CLKCTRL_SSP2_CLKGATE,
 	 .busy_reg = CLKCTRL_BASE_ADDR + HW_CLKCTRL_SSP2,
@@ -1128,8 +1142,8 @@ static struct clk ssp_clk[] = {
 	{
 	 .parent = &ref_io_clk[1],
 	 .get_rate = ssp_get_rate,
-	 .enable = mx28_raw_enable,
-	 .disable = mx28_raw_disable,
+	 .enable = mx28_raw_set_ena,
+	 .disable = mx28_raw_unset_dis,
 	 .enable_reg = CLKCTRL_BASE_ADDR + HW_CLKCTRL_SSP3,
 	 .enable_bits = BM_CLKCTRL_SSP3_CLKGATE,
 	 .busy_reg = CLKCTRL_BASE_ADDR + HW_CLKCTRL_SSP3,
@@ -1175,6 +1189,7 @@ static unsigned long ssp_get_rate(struct clk *clk)
 	return (clk->parent->get_rate(clk->parent) / 0x200) / div;
 }
 
+#warning TODO: revise lcdif_get_rate()
 static unsigned long lcdif_get_rate(struct clk *clk)
 {
 	long rate = clk->parent->get_rate(clk->parent);
@@ -1192,25 +1207,70 @@ static unsigned long lcdif_get_rate(struct clk *clk)
 	return rate;
 }
 
+/* Code by Conrad Conrad from community.freescale.com */
 static int lcdif_set_rate(struct clk *clk, unsigned long rate)
 {
+	int n, div, err, i;
 	int reg_val;
+	int min_err = 9999, min_err_n = 0, min_err_div = 0;
+	u32 cycle_time;
+		
+	cycle_time = 1000000 / rate;	/* in ns (rate is in KHz) */
+
+	for (n = 18; n < 36; n++) {	/* possible value (18..35) for fractional clock control divider */
+
+		/* Freq after fractional divider ffreq = 480MHz * 18 / n
+		 *
+		 * Further divide required = cycle_time_in_s / ( 1/ ffreq) =
+		 *	cycle_time_in_ns / (1000 n / (480 * 18)) =
+		 *		cycle_time * 216 / 25n
+		 *
+		 * Formula used rounds the divisor to nearest interger.
+		 */
+
+		div = ((cycle_time * 2 * 216) / (25 * n) + 1) >> 1;
+		if (div > 255)
+			continue;
+		err = div * 25 * n - cycle_time * 216;
+		if (err < 0)
+			err = -err;
+
+		if (err < min_err) {
+			min_err = err;
+			min_err_n = n;
+			min_err_div = div;
+		}
+	}
+
+	if (min_err >= 9999)
+		return -EINVAL;
+
+	/* Program ref_pix phase fractional divider */
+	reg_val = __raw_readl(CLKCTRL_BASE_ADDR + HW_CLKCTRL_FRAC1);
+	reg_val &= ~BM_CLKCTRL_FRAC1_PIXFRAC;
+	reg_val |= BF_CLKCTRL_FRAC1_PIXFRAC(min_err_n);
+	__raw_writel(reg_val, CLKCTRL_BASE_ADDR + HW_CLKCTRL_FRAC1);
+
+	/* Ungate PFD */
+	__raw_writel(BM_CLKCTRL_FRAC1_CLKGATEPIX,
+			CLKCTRL_BASE_ADDR + HW_CLKCTRL_FRAC1_CLR);
 
 	reg_val = __raw_readl(clk->scale_reg);
 	reg_val &= ~(BM_CLKCTRL_DIS_LCDIF_DIV | BM_CLKCTRL_DIS_LCDIF_CLKGATE);
-	reg_val |= (1 << BP_CLKCTRL_DIS_LCDIF_DIV) & BM_CLKCTRL_DIS_LCDIF_DIV;
+	reg_val |= (min_err_div << BP_CLKCTRL_DIS_LCDIF_DIV) & BM_CLKCTRL_DIS_LCDIF_DIV;
 	__raw_writel(reg_val, clk->scale_reg);
+
 	if (clk->busy_reg) {
-		int i;
 		for (i = 10000; i; i--)
 			if (!clk_is_busy(clk))
 				break;
-		if (!i)
+		if (i == 0)
 			return -ETIMEDOUT;
 	}
 
+	/* Switch to ref_pix source */
 	reg_val = __raw_readl(CLKCTRL_BASE_ADDR + HW_CLKCTRL_CLKSEQ);
-	reg_val |= BM_CLKCTRL_CLKSEQ_BYPASS_DIS_LCDIF;
+	reg_val &= ~BM_CLKCTRL_CLKSEQ_BYPASS_DIS_LCDIF;
 	__raw_writel(reg_val, CLKCTRL_BASE_ADDR + HW_CLKCTRL_CLKSEQ);
 
 	return 0;
@@ -1240,8 +1300,8 @@ static int lcdif_set_parent(struct clk *clk, struct clk *parent)
 
 static struct clk dis_lcdif_clk = {
 	.parent = &pll_clk[0],
-	.enable = mx28_raw_enable,
-	.disable = mx28_raw_disable,
+	.enable = mx28_raw_set_ena,
+	.disable = mx28_raw_unset_dis,
 	.scale_reg = CLKCTRL_BASE_ADDR + HW_CLKCTRL_DIS_LCDIF,
 	.scale_bits = 0,
 	.busy_reg = CLKCTRL_BASE_ADDR + HW_CLKCTRL_DIS_LCDIF,
@@ -1388,8 +1448,8 @@ static struct clk gpmi_clk = {
 	.get_rate = gpmi_get_rate,
 	.set_rate = gpmi_set_rate,
 	.round_rate = gpmi_round_rate,
-	.enable = mx28_raw_enable,
-	.disable = mx28_raw_disable,
+	.enable = mx28_raw_set_ena,
+	.disable = mx28_raw_unset_dis,
 	.enable_reg = CLKCTRL_BASE_ADDR + HW_CLKCTRL_GPMI,
 	.enable_bits = BM_CLKCTRL_GPMI_CLKGATE,
 	.bypass_reg = CLKCTRL_BASE_ADDR + HW_CLKCTRL_CLKSEQ,
@@ -1397,15 +1457,15 @@ static struct clk gpmi_clk = {
 };
 
 static unsigned long saif_get_rate(struct clk *clk);
-static unsigned long saif_set_rate(struct clk *clk, unsigned int rate);
-static unsigned long saif_set_parent(struct clk *clk, struct clk *parent);
+static int saif_set_rate(struct clk *clk, unsigned long rate);
+static int saif_set_parent(struct clk *clk, struct clk *parent);
 
 static struct clk saif_clk[] = {
 	{
 	 .parent = &pll_clk[0],
 	 .get_rate = saif_get_rate,
-	 .enable = mx28_raw_enable,
-	 .disable = mx28_raw_disable,
+	 .enable = mx28_raw_set_ena,
+	 .disable = mx28_raw_unset_dis,
 	 .enable_reg = CLKCTRL_BASE_ADDR + HW_CLKCTRL_SAIF0,
 	 .enable_bits = BM_CLKCTRL_SAIF0_CLKGATE,
 	 .scale_reg = CLKCTRL_BASE_ADDR + HW_CLKCTRL_SAIF0,
@@ -1420,8 +1480,8 @@ static struct clk saif_clk[] = {
 	{
 	 .parent = &pll_clk[0],
 	 .get_rate = saif_get_rate,
-	 .enable = mx28_raw_enable,
-	 .disable = mx28_raw_disable,
+	 .enable = mx28_raw_set_ena,
+	 .disable = mx28_raw_unset_dis,
 	 .enable_reg = CLKCTRL_BASE_ADDR + HW_CLKCTRL_SAIF1,
 	 .enable_bits = BM_CLKCTRL_SAIF1_CLKGATE,
 	 .scale_reg = CLKCTRL_BASE_ADDR + HW_CLKCTRL_SAIF1,
@@ -1452,14 +1512,14 @@ static unsigned long saif_get_rate(struct clk *clk)
 	return (clk->parent->get_rate(clk->parent) / 0x10000) * div;
 }
 
-static unsigned long saif_set_rate(struct clk *clk, unsigned int rate)
+static int saif_set_rate(struct clk *clk, unsigned long rate)
 {
 	u16 div = 0;
 	u32 clkctrl_saif;
 	u64 rates;
 	struct clk *parent = clk->parent;
 
-	pr_debug("%s: rate %d, parent rate %d\n", __func__, rate,
+	pr_debug("%s: rate %lu, parent rate %lu\n", __func__, rate,
 			clk_get_rate(parent));
 
 	if (rate > clk_get_rate(parent))
@@ -1494,7 +1554,7 @@ static unsigned long saif_set_rate(struct clk *clk, unsigned int rate)
 	return 0;
 }
 
-static unsigned long saif_set_parent(struct clk *clk, struct clk *parent)
+static int saif_set_parent(struct clk *clk, struct clk *parent)
 {
 	int ret = -EINVAL;
 	int shift = 4;
@@ -1521,17 +1581,16 @@ static int saif_mclk_enable(struct clk *clk)
 	return 0;
 }
 
-static int saif_mclk_disable(struct clk *clk)
+static void saif_mclk_disable(struct clk *clk)
 {
 	/*Check if disabled already*/
 	if (!(__raw_readl(clk->busy_reg) & clk->busy_bits))
-		return 0;
+		return;
 	 /*Disable saif to disable mclk*/
 	__raw_writel(0x0, clk->enable_reg);
 	mdelay(1);
 	__raw_writel(0x0, clk->enable_reg);
 	mdelay(1);
-	return 0;
 }
 
 static struct clk saif_mclk[] = {
@@ -1563,8 +1622,8 @@ static unsigned long pcmspdif_get_rate(struct clk *clk)
 static struct clk pcmspdif_clk = {
 	.parent = &pll_clk[0],
 	.get_rate = pcmspdif_get_rate,
-	.enable = mx28_raw_enable,
-	.disable = mx28_raw_disable,
+	.enable = mx28_raw_set_ena,
+	.disable = mx28_raw_unset_dis,
 	.enable_reg = CLKCTRL_BASE_ADDR + HW_CLKCTRL_SPDIF,
 	.enable_bits = BM_CLKCTRL_SPDIF_CLKGATE,
 };
@@ -1572,8 +1631,8 @@ static struct clk pcmspdif_clk = {
 /* usb_clk for usb0 */
 static struct clk usb_clk0 = {
 	.parent = &pll_clk[0],
-	.enable = mx28_raw_enable,
-	.disable = mx28_raw_disable,
+	.enable = mx28_raw_set_ena,
+	.disable = mx28_raw_unset_dis,
 	.enable_reg = DIGCTRL_BASE_ADDR + HW_DIGCTL_CTRL,
 	.enable_bits = BM_DIGCTL_CTRL_USB0_CLKGATE,
 	.flags = CPU_FREQ_TRIG_UPDATE,
@@ -1582,8 +1641,8 @@ static struct clk usb_clk0 = {
 /* usb_clk for usb1 */
 static struct clk usb_clk1 = {
 	.parent = &pll_clk[1],
-	.enable = mx28_raw_enable,
-	.disable = mx28_raw_disable,
+	.enable = mx28_raw_set_ena,
+	.disable = mx28_raw_unset_dis,
 	.enable_reg = DIGCTRL_BASE_ADDR + HW_DIGCTL_CTRL,
 	.enable_bits = BM_DIGCTL_CTRL_USB1_CLKGATE,
 	.flags = CPU_FREQ_TRIG_UPDATE,
@@ -1592,8 +1651,8 @@ static struct clk usb_clk1 = {
 /* usb phy clock for usb0 */
 static struct clk usb_phy_clk0 = {
 	.parent = &pll_clk[0],
-	.enable = mx28_raw_disable, /* EN_USB_CLKS = 1 means ON */
-	.disable = mx28_raw_enable,
+	.enable = mx28_raw_unset_ena, /* EN_USB_CLKS = 1 means ON */
+	.disable = mx28_raw_set_dis,
 	.enable_reg = CLKCTRL_BASE_ADDR + HW_CLKCTRL_PLL0CTRL0_SET,
 	.enable_bits = BM_CLKCTRL_PLL0CTRL0_EN_USB_CLKS,
 	.flags = CPU_FREQ_TRIG_UPDATE,
@@ -1602,8 +1661,8 @@ static struct clk usb_phy_clk0 = {
 /* usb phy clock for usb1 */
 static struct clk usb_phy_clk1 = {
 	.parent = &pll_clk[1],
-	.enable = mx28_raw_disable,
-	.disable = mx28_raw_enable,
+	.enable = mx28_raw_unset_ena,
+	.disable = mx28_raw_set_dis,
 	.enable_reg = CLKCTRL_BASE_ADDR + HW_CLKCTRL_PLL1CTRL0_SET,
 	.enable_bits = BM_CLKCTRL_PLL0CTRL0_EN_USB_CLKS,
 	.flags = CPU_FREQ_TRIG_UPDATE,
@@ -1611,8 +1670,8 @@ static struct clk usb_phy_clk1 = {
 
 static struct clk enet_out_clk = {
 	.parent = &pll_clk[2],
-	.enable = mx28_raw_enable,
-	.disable = mx28_raw_disable,
+	.enable = mx28_raw_set_ena,
+	.disable = mx28_raw_unset_dis,
 	.enable_reg = CLKCTRL_BASE_ADDR + HW_CLKCTRL_ENET,
 	.enable_bits = BM_CLKCTRL_ENET_DISABLE,
 };

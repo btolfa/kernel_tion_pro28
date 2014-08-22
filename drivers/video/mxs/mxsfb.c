@@ -44,9 +44,6 @@
 
 #define NUM_SCREENS	1
 
-#undef pr_debug
-#define pr_debug pr_warning
-
 enum {
 	F_DISABLE = 0,
 	F_ENABLE,

@@ -1092,10 +1092,12 @@ static int mil_set_physical_geometry(struct gpmi_nfc_data  *this)
 	struct physical_geometry  *physical = &this->physical_geometry;
 	struct nand_chip          *nand     = &mil->nand;
 	struct nand_device_info   *info     = &this->device_info;
+#if defined(DETAILED_INFO)
 	unsigned int              block_size_in_pages;
 	unsigned int              chip_size_in_blocks;
 	unsigned int              chip_size_in_pages;
 	uint64_t                  medium_size_in_bytes;
+#endif
 
 	/*
 	 * Record the number of physical chips that MTD found.
@@ -1129,6 +1131,10 @@ static int mil_set_physical_geometry(struct gpmi_nfc_data  *this)
 
 	physical->chip_size_in_bytes = info->chip_size_in_bytes;
 
+	/* Report. */
+
+#if defined(DETAILED_INFO)
+
 	/* Compute some interesting facts. */
 
 	block_size_in_pages  =
@@ -1140,12 +1146,9 @@ static int mil_set_physical_geometry(struct gpmi_nfc_data  *this)
 	chip_size_in_blocks  =
 			physical->chip_size_in_bytes >>
 				(fls(physical->block_size_in_bytes) - 1);
+
 	medium_size_in_bytes =
 			physical->chip_size_in_bytes * physical->chip_count;
-
-	/* Report. */
-
-	#if defined(DETAILED_INFO)
 
 	pr_info("-----------------\n");
 	pr_info("Physical Geometry\n");
@@ -1172,7 +1175,7 @@ static int mil_set_physical_geometry(struct gpmi_nfc_data  *this)
 	pr_info("Medium Size in Bytes   : %llu (0x%llx)\n",
 			medium_size_in_bytes, medium_size_in_bytes);
 
-	#endif
+#endif
 
 	/* Return success. */
 

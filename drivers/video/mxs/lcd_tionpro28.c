@@ -1,62 +1,115 @@
 /*
  *   LCD panel driver
- *
- 
  */
 
 #include <linux/init.h>
 #include <linux/delay.h>
 #include <linux/clk.h>
+#include <linux/gpio.h>
 #include <linux/notifier.h>
 #include <linux/regulator/consumer.h>
 #include <linux/platform_device.h>
 
 #include <mach/device.h>
 #include <mach/lcdif.h>
+#include <mach/pinctrl.h>
 #include <mach/regs-pwm.h>
 #include <mach/system.h>
 
+struct dot_clk {
+	unsigned int is_via_dac;	/* Is via onboard DAC IC */
+	unsigned int cycle_time_ns;
+	unsigned int h_active;
+	unsigned int h_pulse_width;
+	unsigned int hf_porch;
+	unsigned int hb_porch;
+	unsigned int v_active;
+	unsigned int v_pulse_width;
+	unsigned int vf_porch;
+	unsigned int vb_porch;
+};
 
-/*//#if FALSE
-// 640x480 TFT
-#define DOTCLK_H_ACTIVE  640
-#define DOTCLK_H_PULSE_WIDTH 10
-#define DOTCLK_HF_PORCH  12
-#define DOTCLK_HB_PORCH  138
-#define DOTCLK_H_WAIT_CNT  (DOTCLK_H_PULSE_WIDTH + DOTCLK_HB_PORCH)
-#define DOTCLK_H_PERIOD (DOTCLK_H_WAIT_CNT + DOTCLK_HF_PORCH + DOTCLK_H_ACTIVE)
-
-#define DOTCLK_V_ACTIVE  480
-#define DOTCLK_V_PULSE_WIDTH  10
-#define DOTCLK_VF_PORCH  14
-#define DOTCLK_VB_PORCH  21
-#define DOTCLK_V_WAIT_CNT (DOTCLK_V_PULSE_WIDTH + DOTCLK_VB_PORCH)
-#define DOTCLK_V_PERIOD (DOTCLK_VF_PORCH + DOTCLK_V_ACTIVE + DOTCLK_V_WAIT_CNT)
-//#endif*/
-//#if TRUE
-// 640x480 VGA
-#define DOTCLK_H_ACTIVE  640
-#define DOTCLK_H_PULSE_WIDTH 96
-#define DOTCLK_HF_PORCH  16
-#define DOTCLK_HB_PORCH  48
-#define DOTCLK_H_WAIT_CNT  (DOTCLK_H_PULSE_WIDTH + DOTCLK_HB_PORCH)
-#define DOTCLK_H_PERIOD (DOTCLK_H_WAIT_CNT + DOTCLK_HF_PORCH + DOTCLK_H_ACTIVE)
-
-#define DOTCLK_V_ACTIVE  480
-#define DOTCLK_V_PULSE_WIDTH  2
-#define DOTCLK_VF_PORCH  13
-#define DOTCLK_VB_PORCH  31
-#define DOTCLK_V_WAIT_CNT (DOTCLK_V_PULSE_WIDTH + DOTCLK_VB_PORCH)
-#define DOTCLK_V_PERIOD (DOTCLK_VF_PORCH + DOTCLK_V_ACTIVE + DOTCLK_V_WAIT_CNT)
-//#endif
+static const struct dot_clk dot_clks[] = {
+/* 0 */	{	/* VGA */
+		1, 40,
+		640, 96, 16, 48,
+		480, 2, 13, 31,
+	},
+/* 1 */	{	/* TFT 5.7'' 640x480 */
+		0, 40,
+		640, 10, 12, 138,
+		480, 10, 14, 21,
+	},
+/* 2 */	{	/* TFT 3.5'' 320x240 */
+		0, 116,	/* 116 ns for 72 Hz */
+		320, 32, 32, 96,
+		240, 3, 3, 4,
+	}
+};
 
 static struct mxs_platform_bl_data bl_data;
 static struct clk *lcd_clk;
+
+static const unsigned int gpio_vga_dac_pwr_ena = MXS_PIN_TO_GPIO(MXS_PIN_ENCODE(1, 25));
+static const unsigned int gpio_lcd_pwr_ena = MXS_PIN_TO_GPIO(MXS_PIN_ENCODE(3, 30));
+
+static const unsigned int gpio_pwm = MXS_PIN_TO_GPIO(MXS_PIN_ENCODE(3, 28));
+static const int backlight_pwm_num = 3;
+
+static int is_via_dac = 0;
+
+static void pwm_set(int pwm_num, int active, int period);
+
+static const struct dot_clk *get_video_by_tag(void)
+{
+	const struct dot_clk *dot_clk;
+	const char tag_str[] = "tag=";
+	char *opt, *pos;
+
+	dot_clk = NULL;
+
+	/* Select display type from cmdline "video=mxs-fb:tag=vga" */
+	if (fb_get_options("mxs-fb", &opt) == 0
+	&& opt != NULL && *opt != '\0') {
+		pos = strstr(opt, tag_str);
+		if (pos != NULL) {
+			pos += strlen(tag_str);
+
+			if (NULL != strstr(pos, "vga")) {
+				dot_clk = dot_clks + 0;
+			} else if (NULL != strstr(pos, "3.5")) {
+				dot_clk = dot_clks + 2;
+			} else if (NULL != strstr(pos, "5.7")) {
+				dot_clk = dot_clks + 1;
+			}
+		}
+	}
+
+	return dot_clk;
+}
 
 static int init_panel(struct device *dev, dma_addr_t phys, int memsize,
 		      struct mxs_platform_fb_entry *pentry)
 {
 	int ret = 0;
+	const struct dot_clk *dot_clk;
+	unsigned int dotclk_h_wait_cnt, dotclk_h_period, dotclk_v_wait_cnt, dotclk_v_period;
+
+	gpio_request(gpio_lcd_pwr_ena, "lcd-pwr-ena");
+	gpio_direction_output(gpio_lcd_pwr_ena, 0);
+
+	gpio_request(gpio_vga_dac_pwr_ena, "vga-dac-pwr-ena");
+	gpio_direction_output(gpio_vga_dac_pwr_ena, 0);
+
+	dot_clk = get_video_by_tag();
+	if (!dot_clk) {
+		dev_warn(dev, "no panel tag specified\n");
+
+		return -ENODEV;
+	}
+
+	is_via_dac = dot_clk->is_via_dac;
+
 	lcd_clk = clk_get(dev, "dis_lcdif");
 	if (IS_ERR(lcd_clk)) {
 		ret = PTR_ERR(lcd_clk);
@@ -68,7 +121,7 @@ static int init_panel(struct device *dev, dma_addr_t phys, int memsize,
 		goto out;
 	}
 
-	ret = clk_set_rate(lcd_clk, 1000000 / pentry->cycle_time_ns);	/* kHz */
+	ret = clk_set_rate(lcd_clk, 1000000 / dot_clk->cycle_time_ns);	/* kHz */
 	if (ret) {
 		clk_disable(lcd_clk);
 		clk_put(lcd_clk);
@@ -94,18 +147,22 @@ static int init_panel(struct device *dev, dma_addr_t phys, int memsize,
 	__raw_writel(BM_LCDIF_CTRL1_RESET, REGS_LCDIF_BASE + HW_LCDIF_CTRL1_SET);	/* high */
 	mdelay(1);
 
-	setup_dotclk_panel(DOTCLK_V_PULSE_WIDTH, DOTCLK_V_PERIOD,
-			   DOTCLK_V_WAIT_CNT, DOTCLK_V_ACTIVE,
-			   DOTCLK_H_PULSE_WIDTH, DOTCLK_H_PERIOD,
-			   DOTCLK_H_WAIT_CNT, DOTCLK_H_ACTIVE, 0);
+	dotclk_h_wait_cnt = dot_clk->h_pulse_width + dot_clk->hb_porch;
+	dotclk_h_period = dotclk_h_wait_cnt + dot_clk->hf_porch + dot_clk->h_active;
+	dotclk_v_wait_cnt = dot_clk->v_pulse_width + dot_clk->vb_porch;
+	dotclk_v_period = dotclk_v_wait_cnt + dot_clk->vf_porch + dot_clk->v_active;
 
+	setup_dotclk_panel(dot_clk->v_pulse_width, dotclk_v_period,
+			dotclk_v_wait_cnt, dot_clk->v_active,
+			dot_clk->h_pulse_width, dotclk_h_period,
+			dotclk_h_wait_cnt, dot_clk->h_active, 0);
+
+#warning TODO
 	/* VSYNC & HSYNC polarity */
 	/*__raw_writel(BM_LCDIF_VDCTRL0_VSYNC_POL,
 		     REGS_LCDIF_BASE + HW_LCDIF_VDCTRL0_SET);	
 	__raw_writel(BM_LCDIF_VDCTRL0_HSYNC_POL,
 		     REGS_LCDIF_BASE + HW_LCDIF_VDCTRL0_SET);*/
-
-
 
 	ret = mxs_lcdif_dma_init(dev, phys, memsize);
 	if (ret)
@@ -113,6 +170,7 @@ static int init_panel(struct device *dev, dma_addr_t phys, int memsize,
 
 	mxs_lcd_set_bl_pdata(pentry->bl_data);
 	mxs_lcdif_notify_clients(MXS_LCDIF_PANEL_INIT, pentry);
+
 	return 0;
 
 out:
@@ -122,6 +180,12 @@ out:
 static void release_panel(struct device *dev,
 			  struct mxs_platform_fb_entry *pentry)
 {
+	gpio_set_value(gpio_lcd_pwr_ena, 0);
+	gpio_free(gpio_lcd_pwr_ena);
+
+	gpio_set_value(gpio_vga_dac_pwr_ena, 0);
+	gpio_free(gpio_vga_dac_pwr_ena);
+
 	mxs_lcdif_notify_clients(MXS_LCDIF_PANEL_RELEASE, pentry);
 	release_dotclk_panel();
 	mxs_lcdif_dma_release();
@@ -138,6 +202,12 @@ static int blank_panel(int blank)
 	case FB_BLANK_VSYNC_SUSPEND:
 	case FB_BLANK_HSYNC_SUSPEND:
 	case FB_BLANK_POWERDOWN:
+		if (is_via_dac) {
+			gpio_set_value(gpio_vga_dac_pwr_ena, 0);
+		} else {
+			gpio_set_value(gpio_lcd_pwr_ena, 0);
+		}
+
 		__raw_writel(BM_LCDIF_CTRL_BYPASS_COUNT,
 			     REGS_LCDIF_BASE + HW_LCDIF_CTRL_CLR);
 		for (count = 10000; count; count--) {
@@ -151,6 +221,11 @@ static int blank_panel(int blank)
 	case FB_BLANK_UNBLANK:
 		__raw_writel(BM_LCDIF_CTRL_BYPASS_COUNT,
 			     REGS_LCDIF_BASE + HW_LCDIF_CTRL_SET);
+		if (is_via_dac) {
+			gpio_set_value(gpio_vga_dac_pwr_ena, 1);
+		} else {
+			gpio_set_value(gpio_lcd_pwr_ena, 1);
+		}
 		break;
 
 	default:
@@ -160,11 +235,7 @@ static int blank_panel(int blank)
 }
 
 static struct mxs_platform_fb_entry fb_entry = {
-	.name = "lcd_tionpro28",
-	.x_res = 480,
-	.y_res = 640,
-	.bpp = 16,
-	.cycle_time_ns = 40,
+	.name = "lcd_tion-pro28",
 	.lcd_type = MXS_LCD_PANEL_DOTCLK,
 	.init_panel = init_panel,
 	.release_panel = release_panel,
@@ -189,93 +260,52 @@ static int init_bl(struct mxs_platform_bl_data *data)
 	clk_enable(pwm_clk);
 	mxs_reset_block(REGS_PWM_BASE, 1);
 
-	__raw_writel(BF_PWM_ACTIVEn_INACTIVE(0) |
-		     BF_PWM_ACTIVEn_ACTIVE(0),
-		     REGS_PWM_BASE + HW_PWM_ACTIVEn(2));
-	__raw_writel(BF_PWM_PERIODn_CDIV(6) |	/* divide by 64 */
-		     BF_PWM_PERIODn_INACTIVE_STATE(2) |	/* low */
-		     BF_PWM_PERIODn_ACTIVE_STATE(3) |	/* high */
-		     BF_PWM_PERIODn_PERIOD(599),
-		     REGS_PWM_BASE + HW_PWM_PERIODn(2));
-	__raw_writel(BM_PWM_CTRL_PWM2_ENABLE, REGS_PWM_BASE + HW_PWM_CTRL_SET);
+
+	__raw_writel(1<<backlight_pwm_num, REGS_PWM_BASE + HW_PWM_CTRL_SET);
 
 	return 0;
 }
 
 static void free_bl(struct mxs_platform_bl_data *data)
 {
-	__raw_writel(BF_PWM_ACTIVEn_INACTIVE(0) |
-		     BF_PWM_ACTIVEn_ACTIVE(0),
-		     REGS_PWM_BASE + HW_PWM_ACTIVEn(2));
-	__raw_writel(BF_PWM_PERIODn_CDIV(6) |	/* divide by 64 */
-		     BF_PWM_PERIODn_INACTIVE_STATE(2) |	/* low */
-		     BF_PWM_PERIODn_ACTIVE_STATE(3) |	/* high */
-		     BF_PWM_PERIODn_PERIOD(599),
-		     REGS_PWM_BASE + HW_PWM_PERIODn(2));
-	__raw_writel(BM_PWM_CTRL_PWM2_ENABLE, REGS_PWM_BASE + HW_PWM_CTRL_CLR);
+	pwm_set(backlight_pwm_num, 0, 0);	/* Disable backlight */
+	__raw_writel(1<<backlight_pwm_num, REGS_PWM_BASE + HW_PWM_CTRL_CLR);
 
 	clk_disable(pwm_clk);
 	clk_put(pwm_clk);
 }
 
-static int values[] = { 0, 4, 9, 14, 20, 27, 35, 45, 57, 75, 100 };
-
-static int power[] = {
-	0, 1500, 3600, 6100, 10300,
-	15500, 74200, 114200, 155200,
-	190100, 191000
-};
-
-static int bl_to_power(int br)
+static void pwm_set(int pwm_num, int active, int period)
 {
-	int base;
-	int rem;
+	/* Firslty set PWM pulse width, this _must_ be done firslty */
+	__raw_writel(BF_PWM_ACTIVEn_ACTIVE(0)
+			| BF_PWM_ACTIVEn_INACTIVE(active),
+			REGS_PWM_BASE + HW_PWM_ACTIVEn(pwm_num));
 
-	if (br > 100)
-		br = 100;
-	base = power[br / 10];
-	rem = br % 10;
-	if (!rem)
-		return base;
-	else
-		return base + (rem * (power[br / 10 + 1]) - base) / 10;
+	/* Secondly */
+	__raw_writel(BF_PWM_PERIODn_CDIV(6) |		/* 5 -- divide 60kHz by 64 */
+		     BF_PWM_PERIODn_INACTIVE_STATE(2) |	/* Inactive is low */
+		     BF_PWM_PERIODn_ACTIVE_STATE(3) |	/* Active is high */
+		     BF_PWM_PERIODn_PERIOD(period),
+		     REGS_PWM_BASE + HW_PWM_PERIODn(pwm_num));
 }
 
-static int set_bl_intensity(struct mxs_platform_bl_data *data,
+static int set_bl_intensity(struct mxs_platform_bl_data *pdata,
 			    struct backlight_device *bd, int suspended)
 {
-	int intensity = bd->props.brightness;
-	int scaled_int;
+	int bright;
 
-	if (bd->props.power != FB_BLANK_UNBLANK)
-		intensity = 0;
-	if (bd->props.fb_blank != FB_BLANK_UNBLANK)
-		intensity = 0;
-	if (suspended)
-		intensity = 0;
+	bright = bd->props.brightness;
 
-	/*
-	 * This is not too cool but what can we do?
-	 * Luminance changes non-linearly...
-	 */
-	if (regulator_set_current_limit
-	    (data->regulator, bl_to_power(intensity), bl_to_power(intensity)))
-		return -EBUSY;
-
-	scaled_int = values[intensity / 10];
-	if (scaled_int < 100) {
-		int rem = intensity - 10 * (intensity / 10);	/* r = i % 10; */
-		scaled_int += rem * (values[intensity / 10 + 1] -
-				     values[intensity / 10]) / 10;
+	if (bd->props.power != FB_BLANK_UNBLANK
+	|| bd->props.fb_blank != FB_BLANK_UNBLANK
+	|| suspended
+	|| is_via_dac) {
+		bright = 0;
 	}
-	__raw_writel(BF_PWM_ACTIVEn_INACTIVE(scaled_int) |
-		     BF_PWM_ACTIVEn_ACTIVE(0),
-		     REGS_PWM_BASE + HW_PWM_ACTIVEn(2));
-	__raw_writel(BF_PWM_PERIODn_CDIV(6) |	/* divide by 64 */
-		     BF_PWM_PERIODn_INACTIVE_STATE(2) |	/* low */
-		     BF_PWM_PERIODn_ACTIVE_STATE(3) |	/* high */
-		     BF_PWM_PERIODn_PERIOD(399),
-		     REGS_PWM_BASE + HW_PWM_PERIODn(2));
+
+	pwm_set(backlight_pwm_num, bright, pdata->bl_max_intensity);
+
 	return 0;
 }
 
@@ -291,9 +321,21 @@ static struct mxs_platform_bl_data bl_data = {
 static int __init register_devices(void)
 {
 	struct platform_device *pdev;
+	const struct dot_clk *dot_clk;
+
+	dot_clk = get_video_by_tag();
+	if (!dot_clk) {
+		/* Use first entry for something to register */
+		dot_clk = dot_clks;
+	}
+
 	pdev = mxs_get_device("mxs-fb", 0);
 	if (pdev == NULL || IS_ERR(pdev))
 		return -ENODEV;
+
+	fb_entry.x_res = dot_clk->v_active;
+	fb_entry.y_res = dot_clk->h_active;
+	fb_entry.bpp = 16;
 
 	mxs_lcd_register_entry(&fb_entry, pdev->dev.platform_data);
 

@@ -58,7 +58,7 @@
 
 /* Define this macro to enable detailed information messages. */
 
-#define DETAILED_INFO
+/* #define DETAILED_INFO */
 
 /* Define this macro to enable event reporting. */
 

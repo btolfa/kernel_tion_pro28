@@ -86,7 +86,7 @@ static struct pin_desc mx28evk_fixed_pins[] = {
 	 .id	= PINID_SSP1_SCK,
 	 .fun	= PIN_GPIO,
 	 .strength	= PAD_4MA,
-	 .voltage	= PAD_3_3V,	 
+	 .voltage	= PAD_3_3V,
 	 .data		= 1,
 	 .output	= 1,
 	 },
@@ -95,7 +95,7 @@ static struct pin_desc mx28evk_fixed_pins[] = {
 	 .id	= PINID_SSP1_CMD,
 	 .fun	= PIN_GPIO,
 	 .strength	= PAD_4MA,
-	 .voltage	= PAD_3_3V,	 
+	 .voltage	= PAD_3_3V,
 	 .data		= 1,
 	 .output	= 1,
 	 },
@@ -104,7 +104,7 @@ static struct pin_desc mx28evk_fixed_pins[] = {
 	 .id	= PINID_SSP1_DATA0,
 	 .fun	= PIN_GPIO,
 	 .strength	= PAD_4MA,
-	 .voltage	= PAD_3_3V,	 
+	 .voltage	= PAD_3_3V,
 	 .data		= 1,
 	 .output	= 1,
 	 },
@@ -113,7 +113,7 @@ static struct pin_desc mx28evk_fixed_pins[] = {
 	 .id	= PINID_SSP1_DATA3,
 	 .fun	= PIN_GPIO,
 	 .strength	= PAD_4MA,
-	 .voltage	= PAD_3_3V,	 
+	 .voltage	= PAD_3_3V,
 	 .data		= 1,
 	 .output	= 1,
 	 },
@@ -144,7 +144,7 @@ static struct pin_desc mx28evk_fixed_pins[] = {
 	 .id	= PINID_SSP0_DATA4,
 	 .fun	= PIN_GPIO,
 	 .strength	= PAD_4MA,
-	 .voltage	= PAD_3_3V,	 
+	 .voltage	= PAD_3_3V,
 	 .data		= 1,
 	 .output	= 1,
 	 },
@@ -153,7 +153,7 @@ static struct pin_desc mx28evk_fixed_pins[] = {
 	 .id	= PINID_SSP0_DATA5,
 	 .fun	= PIN_GPIO,
 	 .strength	= PAD_4MA,
-	 .voltage	= PAD_3_3V,	 
+	 .voltage	= PAD_3_3V,
 	 .data		= 1,
 	 .output	= 1,
 	 },
@@ -162,7 +162,7 @@ static struct pin_desc mx28evk_fixed_pins[] = {
 	 .id	= PINID_SSP0_DATA6,
 	 .fun	= PIN_GPIO,
 	 .strength	= PAD_4MA,
-	 .voltage	= PAD_3_3V,	 
+	 .voltage	= PAD_3_3V,
 	 .data		= 1,
 	 .output	= 1,
 	 },
@@ -171,7 +171,7 @@ static struct pin_desc mx28evk_fixed_pins[] = {
 	 .id	= PINID_SSP0_DATA7,
 	 .fun	= PIN_GPIO,
 	 .strength	= PAD_4MA,
-	 .voltage	= PAD_3_3V,	 
+	 .voltage	= PAD_3_3V,
 	 .data		= 1,
 	 .output	= 1,
 	 },
@@ -187,7 +187,8 @@ static struct pin_desc mx28evk_fixed_pins[] = {
 	 .id    = PINID_AUART3_TX,
 	 .fun   = PIN_FUN1,
 	 },
-	/*{
+#if 0
+	{
 	 .name  = "AUART3.CTS",
 	 .id    = PINID_AUART3_CTS,
 	 .fun   = PIN_FUN1,
@@ -196,7 +197,8 @@ static struct pin_desc mx28evk_fixed_pins[] = {
 	 .name  = "AUART3.RTS",
 	 .id    = PINID_AUART3_RTS,
 	 .fun   = PIN_FUN1,
-	 },*/
+	 },
+#endif
 #endif
 	{
 	 .name = "usb0",
@@ -265,7 +267,8 @@ static struct pin_desc mx28evk_fixed_pins[] = {
 	 .drive 	= 1,
 	 .pull 		= 0,
 	 },
-	/*{
+#if 0
+	{
 	 .name	= "CAN_PWDN",
 	 .id	= PINID_SSP1_CMD,
 	 .fun	= PIN_GPIO,
@@ -276,7 +279,8 @@ static struct pin_desc mx28evk_fixed_pins[] = {
 	 .pull 		= 0,
 	 .data		= 0,
 	 .output	= 1,
-	 },*/
+	 },
+#endif
 
 #endif
 
@@ -444,7 +448,8 @@ static struct pin_desc mx28evk_fixed_pins[] = {
 	 .voltage	= PAD_3_3V,
 	 .drive	= 1,
 	 },
-	/*{
+#if 0
+	{
 	 .name  = "LCD_D18",
 	 .id	= PINID_LCD_D18,
 	 .fun	= PIN_FUN1,
@@ -491,7 +496,7 @@ static struct pin_desc mx28evk_fixed_pins[] = {
 	 .strength = PAD_8MA,
 	 .voltage	= PAD_3_3V,
 	 .drive	= 1,
-	 },*/
+	 },
 	{
 	 .name = "LCD_RESET",
 	 .id = PINID_LCD_RESET,
@@ -500,6 +505,7 @@ static struct pin_desc mx28evk_fixed_pins[] = {
 	 .voltage = PAD_3_3V,
 	 .drive	= 1,
 	 },
+#endif
 	{
 	 .name = "LCD_VSYNC",
 	 .id   = PINID_LCD_VSYNC,
@@ -583,7 +589,8 @@ static struct pin_desc mx28evk_fixed_pins[] = {
 	 .drive 	= 1,
 	 .pull 		= 1,
 	 },
-	/*{
+#if 0
+	{
 	 .name	= "SSP0_DATA4",
 	 .id	= PINID_SSP0_DATA4,
 	 .fun	= PIN_FUN1,
@@ -622,7 +629,8 @@ static struct pin_desc mx28evk_fixed_pins[] = {
 	 .pullup	= 1,
 	 .drive 	= 1,
 	 .pull 		= 1,
-	 },*/
+	 },
+#endif
 	{
 	 .name	= "SSP0_CMD",
 	 .id	= PINID_SSP0_CMD,
@@ -650,7 +658,7 @@ static struct pin_desc mx28evk_fixed_pins[] = {
 	 .strength	= PAD_12MA,
 	 .voltage	= PAD_3_3V,
 	 .pullup	= 0,
-	 .drive 	= 2,
+	 .drive 	= 1,
 	 .pull 		= 0,
 	 },
 #endif
@@ -666,15 +674,6 @@ static struct pin_desc mx28evk_fixed_pins[] = {
 	 .pull          = 1,
 	 },
 	{
-	 .name = "LEDS_PWM1",
-	 .id = PINID_PWM4,
-	 .fun           = PIN_FUN3,
-	 .strength      = PAD_8MA,
-	 .voltage       = PAD_3_3V,
-	 .pullup        = 1,
-	 .drive         = 1,
-	 .pull          = 1,
-	 },
 #endif
 #if defined(CONFIG_SND_MXS_SOC_DAI) || defined(CONFIG_SND_MXS_SOC_DAI_MODULE)
 	/* Configurations of SAIF0 port pins */
@@ -896,11 +895,11 @@ static struct pin_desc mx28evk_eth_pins[] = {
 	 .pullup = 1,
 	 .voltage = PAD_3_3V,
 	 .drive	= 1,
-	 },	
+	 },
 };
 #endif
 
-static int __initdata enable_ssp1 = { 0 };
+static int __initdata enable_ssp1 = 0;
 static int __init ssp1_setup(char *__unused)
 {
 	enable_ssp1 = 0; // no use SSP1 in TionPro28
@@ -1017,15 +1016,15 @@ static struct pin_desc mx28evk_ssp1_pins[] = {
 	 .strength	= PAD_12MA,
 	 .voltage	= PAD_3_3V,
 	 .pullup	= 0,
-	 .drive 	= 2,
+	 .drive 	= 1,
 	 .pull 		= 0,
 	 },
 };
 
 #ifdef CONFIG_MTD_NAND
-int enable_gpmi = { 1 };
+int enable_gpmi = 1;
 #else
-int enable_gpmi = { 0 };
+int enable_gpmi = 0;
 #endif
 static int __init gpmi_setup(char *__unused)
 {
@@ -1329,12 +1328,10 @@ void __init mx28evk_pins_init(void)
 
 	if (enable_ssp1) {
 		pr_info("Initializing SSP1 pins\n");
-		printk(KERN_WARNING "Initializing SSP1 pins\n");
 		mx28evk_init_pin_group(mx28evk_ssp1_pins,
 						ARRAY_SIZE(mx28evk_ssp1_pins));
 	} else if (enable_gpmi) {
 		pr_info("Initializing GPMI pins\n");
-		printk(KERN_WARNING "Initializing GPMI pins\n");
 		mx28evk_init_pin_group(mx28evk_gpmi_pins,
 						ARRAY_SIZE(mx28evk_gpmi_pins));
 	}

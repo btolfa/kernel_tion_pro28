@@ -1286,10 +1286,10 @@ fec_restart(struct net_device *dev, int duplex)
 	unsigned long reg;
 	int val;
 
-#ifdef CONFIG_ARCH_MXS
+/*#ifdef CONFIG_ARCH_MXS
 	if (pdata && pdata->init)
 		ret = pdata->init();
-#endif
+#endif*/
 
 	/* Whack a reset.  We should wait for this. */
 	writel(1, fep->hwp + FEC_ECNTRL);

@@ -83,14 +83,10 @@ static void __init fixup_board(struct machine_desc *desc, struct tag *tags,
 }
 
 #if defined(CONFIG_LEDS_MXS) || defined(CONFIG_LEDS_MXS_MODULE)
-static struct mxs_pwm_led  mx28evk_led_pwm[2] = {
+static struct mxs_pwm_led  mx28evk_led_pwm[1] = {
 	[0] = {
-		.name = "led-pwm0",
-		.pwm = 0,
-		},
-	[1] = {
-		.name = "led-pwm1",
-		.pwm = 1,
+		.name = "led-pwm4",
+		.pwm = 4,
 		},
 };
 
@@ -119,9 +115,32 @@ static void __init mx28evk_init_leds(void)
 	mxs_add_device(pdev, 3);
 }
 #else
+
+static struct gpio_led tion_pro28_leds[] = {
+	{
+		.name		 = "led:green:1",
+		.default_trigger = "heartbeat",
+		.gpio		 = MXS_PIN_TO_GPIO(MXS_PIN_ENCODE(3, 29)),
+		.active_low	 = 1,
+	},
+};
+
+static struct gpio_led_platform_data tion_pro28_leds_info = {
+	.leds		= tion_pro28_leds,
+	.num_leds	= ARRAY_SIZE(tion_pro28_leds),
+};
+
+static struct platform_device tion_pro28_leds_device = {
+	.name		= "leds-gpio",
+	.id		= -1,
+	.dev		= {
+		.platform_data	= &tion_pro28_leds_info,
+	},
+};
+
 static void __init mx28evk_init_leds(void)
 {
-	;
+	platform_device_register(&tion_pro28_leds_device);
 }
 #endif
 
