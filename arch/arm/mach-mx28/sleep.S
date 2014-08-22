@@ -160,10 +160,6 @@ ENTRY(mx28_cpu_standby)
 __mx28_temp_stack:
 	.space	128
 
-	.space	0x100
-__mx28_temp_stack:
-	.space	128
-
 	adr	r9, __mx28_temp_stack
 
 	@ clean cache
@@ -310,15 +306,6 @@ __mx28_temp_stack:
 	mov r1, #(0x1F)
 	str r1, [r0, #4]
 
-	@ div hbus to lowest
-	mov r0, #(HW_CLKCTRL_HBUS_ADDR & 0x000000FF)
-	orr r0, r0, #(HW_CLKCTRL_HBUS_ADDR & 0x0000FF00)
-	orr r0, r0, #(HW_CLKCTRL_HBUS_ADDR & 0x00FF0000)
-	orr r0, r0, #(HW_CLKCTRL_HBUS_ADDR & 0xFF000000)
-	ldr r3, [r0]
-	mov r1, #(0x1F)
-	str r1, [r0, #4]
-
 	@ do enter standby
 	mov	r0, #(HW_CLKCTRL_CPU_ADDR & 0x000000FF)
 	orr	r0, r0, #(HW_CLKCTRL_CPU_ADDR & 0x0000FF00)
@@ -337,13 +324,6 @@ __mx28_temp_stack:
 	nop
 	nop
 	nop
-
-	@ restore hbus
-	mov r0, #(HW_CLKCTRL_HBUS_ADDR & 0x000000FF)
-	orr r0, r0, #(HW_CLKCTRL_HBUS_ADDR & 0x0000FF00)
-	orr r0, r0, #(HW_CLKCTRL_HBUS_ADDR & 0x00FF0000)
-	orr r0, r0, #(HW_CLKCTRL_HBUS_ADDR & 0xFF000000)
-	str r3, [r0]
 
 	@ restore hbus
 	mov r0, #(HW_CLKCTRL_HBUS_ADDR & 0x000000FF)

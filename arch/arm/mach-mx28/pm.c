@@ -447,19 +447,6 @@ static void mx28_pm_recover(void)
 		REGS_POWER_BASE + HW_POWER_CTRL_SET);
 }
 
-static void mx28_pm_recover(void)
-{
-	/*
-	 * The PSWITCH interrupt is enabled at do_standby, if the deivce
-	 * suspend failed, the enable operation will not be executed, in that
-	 * case, the POWER key will not be active again.
-	 */
-	__raw_writel(BM_POWER_CTRL_PSWITCH_IRQ,
-		REGS_POWER_BASE + HW_POWER_CTRL_CLR);
-	__raw_writel(BM_POWER_CTRL_ENIRQ_PSWITCH,
-		REGS_POWER_BASE + HW_POWER_CTRL_SET);
-}
-
 static void mx28_pm_end(void)
 {
 	if (saved_state == PM_SUSPEND_MEM) {

@@ -644,15 +644,4 @@ struct mxs_platform_perfmon_data {
 	int bit_config_cnt;
 };
 
-struct mxs_perfmon_bit_config {
-	int reg;
-	int field;
-	const char *name;
-};
-
-struct mxs_platform_perfmon_data {
-	struct mxs_perfmon_bit_config *bit_config_tab;
-	int bit_config_cnt;
-};
-
 #endif /* _FSL_DEVICE_H_ */
