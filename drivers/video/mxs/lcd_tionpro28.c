@@ -17,7 +17,8 @@
 #include <mach/system.h>
 
 struct dot_clk {
-	unsigned int is_via_dac;	/* Is via onboard DAC IC */
+	unsigned int dac_power_en;	/* power for onboard DAC IC */
+	unsigned int lcd_power_en;	/* power for lcd */
 	unsigned int cycle_time_ns;
 	unsigned int h_active;
 	unsigned int h_pulse_width;
@@ -31,17 +32,17 @@ struct dot_clk {
 
 static const struct dot_clk dot_clks[] = {
 /* 0 */	{	/* VGA */
-		1, 40,
+		1, 0, 40,
 		640, 96, 16, 48,
 		480, 2, 13, 31,
 	},
 /* 1 */	{	/* TFT 5.7'' 640x480 */
-		0, 40,
+		1, 1, 40,
 		640, 10, 12, 138,
 		480, 10, 14, 21,
 	},
 /* 2 */	{	/* TFT 3.5'' 320x240 */
-		0, 116,	/* 116 ns for 72 Hz */
+		1, 1, 116,	/* 116 ns for 72 Hz */
 		320, 32, 32, 96,
 		240, 3, 3, 4,
 	}
@@ -56,7 +57,8 @@ static const unsigned int gpio_lcd_pwr_ena = MXS_PIN_TO_GPIO(MXS_PIN_ENCODE(3, 3
 static const unsigned int gpio_pwm = MXS_PIN_TO_GPIO(MXS_PIN_ENCODE(3, 28));
 static const int backlight_pwm_num = 3;
 
-static int is_via_dac = 0;
+static int dac_power_en = 0;
+static int lcd_power_en = 0;
 
 static void pwm_set(int pwm_num, int active, int period);
 
@@ -66,7 +68,7 @@ static const struct dot_clk *get_video_by_tag(void)
 	const char tag_str[] = "tag=";
 	char *opt, *pos;
 
-	dot_clk = NULL;
+	dot_clk = dot_clks + 1; //default setting
 
 	/* Select display type from cmdline "video=mxs-fb:tag=vga" */
 	if (fb_get_options("mxs-fb", &opt) == 0
@@ -108,7 +110,9 @@ static int init_panel(struct device *dev, dma_addr_t phys, int memsize,
 		return -ENODEV;
 	}
 
-	is_via_dac = dot_clk->is_via_dac;
+	dac_power_en = dot_clk->dac_power_en;
+	lcd_power_en = dot_clk->lcd_power_en;
+	
 
 	lcd_clk = clk_get(dev, "dis_lcdif");
 	if (IS_ERR(lcd_clk)) {
@@ -202,9 +206,10 @@ static int blank_panel(int blank)
 	case FB_BLANK_VSYNC_SUSPEND:
 	case FB_BLANK_HSYNC_SUSPEND:
 	case FB_BLANK_POWERDOWN:
-		if (is_via_dac) {
+		if (dac_power_en) {
 			gpio_set_value(gpio_vga_dac_pwr_ena, 0);
-		} else {
+		}
+		if (lcd_power_en){
 			gpio_set_value(gpio_lcd_pwr_ena, 0);
 		}
 
@@ -221,9 +226,10 @@ static int blank_panel(int blank)
 	case FB_BLANK_UNBLANK:
 		__raw_writel(BM_LCDIF_CTRL_BYPASS_COUNT,
 			     REGS_LCDIF_BASE + HW_LCDIF_CTRL_SET);
-		if (is_via_dac) {
+		if (dac_power_en) {
 			gpio_set_value(gpio_vga_dac_pwr_ena, 1);
-		} else {
+		}
+		if (lcd_power_en){
 			gpio_set_value(gpio_lcd_pwr_ena, 1);
 		}
 		break;
@@ -299,8 +305,7 @@ static int set_bl_intensity(struct mxs_platform_bl_data *pdata,
 
 	if (bd->props.power != FB_BLANK_UNBLANK
 	|| bd->props.fb_blank != FB_BLANK_UNBLANK
-	|| suspended
-	|| is_via_dac) {
+	|| suspended) {
 		bright = 0;
 	}
 

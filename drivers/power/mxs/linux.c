@@ -1219,13 +1219,14 @@ static struct fiq_handler power_fiq = {
 static struct pt_regs fiq_regs;
 extern char power_fiq_start[], power_fiq_end[];
 extern void lock_vector_tlb(void *);
-extern long power_fiq_count;
 static struct proc_dir_entry *power_fiq_proc;
 #endif
 
 static int __init mxs_bat_init(void)
 {
+#ifdef CONFIG_MXS_VBUS_CURRENT_DRAW
 	struct clk *cpu, *pll0;
+#endif
 	int ret;
     int no_battery = false;
 

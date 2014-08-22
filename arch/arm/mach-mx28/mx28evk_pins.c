@@ -673,7 +673,6 @@ static struct pin_desc mx28evk_fixed_pins[] = {
 	 .drive         = 1,
 	 .pull          = 1,
 	 },
-	{
 #endif
 #if defined(CONFIG_SND_MXS_SOC_DAI) || defined(CONFIG_SND_MXS_SOC_DAI_MODULE)
 	/* Configurations of SAIF0 port pins */
