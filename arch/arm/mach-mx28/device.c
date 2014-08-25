@@ -1119,7 +1119,7 @@ static void __init mx28_init_ts(void)
 #endif
 
 #if defined(CONFIG_CAN_FLEXCAN) || defined(CONFIG_CAN_FLEXCAN_MODULE)
-static void flexcan_xcvr_enable(int id)
+static void flexcan_xcvr_enable(int en)
 {
 	static int pwdn;
 	if (en) {
